@@ -86,7 +86,7 @@ public class SpringSecurityAppApplication {
 					.accountNoLocked(true)
 					.credentialNoExpired(true)
 					.roles(Set.of(roleEstudiante))
-					.build();
+					.build();	
 
 			userRepository.saveAll(List.of(userAdmin, userProfesor, userEstudiante));
 		};

@@ -17,8 +17,24 @@ import com.security.app.SpringSecurityApp.persistance.repository.UserRepository;
 @Service
 public class UserDetailServiceImpl implements UserDetailsService{
 
+
+
     @Autowired
     private UserRepository userRepository;
+
+    public void eliminarUsuarioById(Long id){
+        if (!userRepository.existsById(id)) {
+                throw new RuntimeException("Usuario con ID: " + id + " no encontrado.");
+        }
+        userRepository.deleteById(id);
+    }
+
+
+
+
+    public UserEntity save(UserEntity newUser){
+        return userRepository.save(newUser);
+    }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -43,5 +59,4 @@ public class UserDetailServiceImpl implements UserDetailsService{
                 userEntity.isAccountNoLocked(),
                 authorityList);
     }
-
 }

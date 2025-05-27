@@ -53,6 +53,7 @@ public class SecurityConfig {
 
     //NUEVO FILTER CHAIN MAS SIMPLE, VALIDA LA ENTRADA A CADA END POINT EN LAS NOTATIOS
     //PROPIAS DE CADA ENDPOINT
+    
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
             return httpSecurity

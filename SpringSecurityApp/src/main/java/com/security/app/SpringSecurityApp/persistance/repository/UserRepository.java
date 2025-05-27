@@ -7,9 +7,11 @@ import org.springframework.stereotype.Repository;
 
 import com.security.app.SpringSecurityApp.persistance.entities.UserEntity;
 
+
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity, Long>{
 
     Optional<UserEntity> findUserEntityByUsername(String username);
+
 
 }

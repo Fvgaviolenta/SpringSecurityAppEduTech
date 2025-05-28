@@ -1,6 +1,7 @@
 package com.security.app.SpringSecurityApp.controller;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,7 @@ import com.security.app.SpringSecurityApp.persistance.repository.UserRepository;
 import com.security.app.SpringSecurityApp.service.UserDetailServiceImpl;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("api/v1/auth")
 @PreAuthorize("denyAll()")
 public class TestAuthController {
 
@@ -43,14 +44,34 @@ public class TestAuthController {
         return "Hello world - GET";
     }
 
+    @GetMapping("/get/listar_usuarios_habilitados")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
+    public ResponseEntity<List<UserEntity>> listarUsuarios(){
+        List<UserEntity> consulta = userDetailServ.findAllByEnabledTrue();
+        if (consulta.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(consulta);
+    }
+
+    @GetMapping("/get/listar_usuarios_deshabilitados")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
+    public ResponseEntity<List<UserEntity>> listarUsuariosDeshabilitados(){
+        List<UserEntity> consulta = userDetailServ.findAllByEnabledFalse();
+        if (consulta.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(consulta);
+    }
+
     @PostMapping("/post")
-    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR', 'SOPORTE')")
     public String helloPost(){
         return "Hello world - POST";
     }
 
-    @PostMapping("/post/creacion_usuario")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PostMapping("/post/crear_usuario")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
     public ResponseEntity<UserEntity> crearUsuario(@RequestBody UserEntityDTO newUserDTO){
 
         Set<RoleEntity> rolesAsignados = new HashSet<>();
@@ -64,7 +85,7 @@ public class TestAuthController {
         UserEntity nuevoUsuario = UserEntity.builder()
                 .username(newUserDTO.getUsername())
                 .password(newUserDTO.getPassword())
-                .isEnable(newUserDTO.isEnable())
+                .enabled(newUserDTO.isEnabled())
                 .accountNoExpired(newUserDTO.isAccountNoExpired())
                 .accountNoLocked(newUserDTO.isAccountNoLocked())
                 .credentialNoExpired(newUserDTO.isAccountNoExpired())
@@ -76,15 +97,48 @@ public class TestAuthController {
     }
 
     @PutMapping("/put")
-    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR', 'SOPORTE')")
     public String helloPut(){
         return "hello world - PUT";
     }
 
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
     public String DeleteUser(@PathVariable Long id){
-        userDetailServ.eliminarUsuarioById(id);
-        return "Usuario con id: " + id + " eliminado.";
+        userDetailServ.deshabilitarUsuarioById(id);
+        return "Usuario con id: " + id + " deshabilitado correctamente.";
+    }
+
+    @PutMapping("/put/habilitar/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
+    public String habilitarUsuario(@PathVariable Long id){
+        userDetailServ.habilitarUsuarioById(id);
+        return "Usuario con id: " + id + " habilitado correctamente.";
+    }
+
+    @PutMapping("/put/actualizar/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
+    public ResponseEntity actualizarUsuario(@PathVariable Long id, @RequestBody UserEntityDTO userDTO){
+        try {
+            Set<RoleEntity> rolesAsignados = new HashSet<>();
+            for (String nombreRol : userDTO.getRoles()) {
+                RoleEnum rolEnum = RoleEnum.valueOf(nombreRol);
+                RoleEntity rol = roleRepository.findByRoleEnum(rolEnum)
+                        .orElseThrow(()-> new RuntimeException("Rol no encontrado: " + nombreRol));
+                rolesAsignados.add(rol);
+            }
+            UserEntity userEntity = userDetailServ.findById(id);
+            userEntity.setUsername(userDTO.getUsername());
+            userEntity.setPassword(userDTO.getPassword());
+            userEntity.setEnabled(userDTO.isEnabled());
+            userEntity.setAccountNoExpired(userDTO.isAccountNoExpired());
+            userEntity.setAccountNoLocked(userDTO.isAccountNoLocked());
+            userEntity.setCredentialNoExpired(userDTO.isCredentialNoExpired());
+
+            userDetailServ.save(userEntity);
+            return ResponseEntity.ok(userEntity);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

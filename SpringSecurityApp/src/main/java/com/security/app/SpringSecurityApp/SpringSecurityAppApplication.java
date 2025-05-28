@@ -57,21 +57,36 @@ public class SpringSecurityAppApplication {
 					.permissionList(Set.of(readPermission))
 					.build();
 
+			RoleEntity roleSoporte = RoleEntity.builder()
+					.roleEnum(RoleEnum.SOPORTE)
+					.permissionList(Set.of(readPermission, createPermission, updatePermission, deletePermission))
+					.build();
+
 			//CREANDO USUARIOS
 			UserEntity userAdmin = UserEntity.builder()
 					.username("alfonso.admin")
 					.password("1234")
-					.isEnable(true)
+					.enabled(true)
 					.accountNoExpired(true)
 					.accountNoLocked(true)
 					.credentialNoExpired(true)
 					.roles(Set.of(roleAdmin))
 					.build();
 
+			UserEntity userSoporte = UserEntity.builder()
+					.username("aron.soporte")
+					.password("1234")
+					.enabled(true)
+					.accountNoExpired(true)
+					.accountNoLocked(true)
+					.credentialNoExpired(true)
+					.roles(Set.of(roleSoporte))
+					.build();
+
 			UserEntity userProfesor = UserEntity.builder()
 					.username("hernan.profesor")
 					.password("1234")
-					.isEnable(true)
+					.enabled(true)
 					.accountNoExpired(true)
 					.accountNoLocked(true)
 					.credentialNoExpired(true)
@@ -81,14 +96,14 @@ public class SpringSecurityAppApplication {
 			UserEntity userEstudiante = UserEntity.builder()
 					.username("fabian.estudiante")
 					.password("1234")
-					.isEnable(true)
+					.enabled(true)
 					.accountNoExpired(true)
 					.accountNoLocked(true)
 					.credentialNoExpired(true)
 					.roles(Set.of(roleEstudiante))
 					.build();	
 
-			userRepository.saveAll(List.of(userAdmin, userProfesor, userEstudiante));
+			userRepository.saveAll(List.of(userAdmin, userSoporte, userProfesor, userEstudiante));
 		};
 	}
 

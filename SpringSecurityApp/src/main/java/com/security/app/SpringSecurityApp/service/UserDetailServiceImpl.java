@@ -2,6 +2,7 @@ package com.security.app.SpringSecurityApp.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +23,37 @@ public class UserDetailServiceImpl implements UserDetailsService{
     @Autowired
     private UserRepository userRepository;
 
-    public void eliminarUsuarioById(Long id){
-        if (!userRepository.existsById(id)) {
-                throw new RuntimeException("Usuario con ID: " + id + " no encontrado.");
-        }
-        userRepository.deleteById(id);
+    public void deshabilitarUsuarioById(Long id){
+        UserEntity user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario con ID: " + id + " no encontrado."));
+        
+        user.setEnabled(false);
+        userRepository.save(user);
+    }
+
+    public void habilitarUsuarioById(Long id){
+        UserEntity user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario con ID: " + id + " no encontrado."));
+        
+        user.setEnabled(true);
+        userRepository.save(user);
+    }
+
+    public List<UserEntity> findAllByEnabledTrue(){
+        return userRepository.findAllByEnabledTrue();
+    }
+
+    public List<UserEntity> findAllByEnabledFalse(){
+        return userRepository.findAllByEnabledFalse();
+    }
+
+    public List<UserEntity> findAll(){
+        return userRepository.findAll();
+    }
+
+    public UserEntity findById(Long id){
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario con ID: " + id + " no encontrado"));
     }
 
 
@@ -53,7 +80,7 @@ public class UserDetailServiceImpl implements UserDetailsService{
 
         return new User(userEntity.getUsername(),
                 userEntity.getPassword(),
-                userEntity.isEnable(),
+                userEntity.isEnabled(),
                 userEntity.isAccountNoExpired(),
                 userEntity.isCredentialNoExpired(),
                 userEntity.isAccountNoLocked(),

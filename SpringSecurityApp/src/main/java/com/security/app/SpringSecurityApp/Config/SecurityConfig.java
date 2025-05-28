@@ -23,29 +23,6 @@ import com.security.app.SpringSecurityApp.service.UserDetailServiceImpl;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-
-    // PRIME FILTER CHAIN CREADO, ES MEJOR Y MAS LIMPIO TRABAJAR ESTO CON NOTATIONS
-    //ENVES DE UN METODO TAN COMPLEJO DE CONFIGURAR
-    // @Bean
-    // public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
-    //         return httpSecurity
-    //                 .csrf(csrf -> csrf.disable())
-    //                 .httpBasic(Customizer.withDefaults())
-    //                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-    //                 .authorizeHttpRequests(http -> {
-    //                     //CONFIGURAR LOS END POINTS PUBLICOS
-    //                     http.requestMatchers(HttpMethod.GET,"/auth/hello").permitAll();
-    //                     //CONFIGURAR LOS ENDPOINTS PRIVADORS
-    //                     http.requestMatchers(HttpMethod.GET,"/auth/hello-secured").hasAuthority("READ");
-    //                     //CONFIGURAR LOS OTROS ENDPOINTS NO ESPECIFICADOS
-    //                     http.anyRequest().authenticated();
-    //                 })
-    //                 .build(); 
-    // }
-
-    //NUEVO FILTER CHAIN MAS SIMPLE, VALIDA LA ENTRADA A CADA END POINT EN LAS NOTATIOS
-    //PROPIAS DE CADA ENDPOINT
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
             return httpSecurity

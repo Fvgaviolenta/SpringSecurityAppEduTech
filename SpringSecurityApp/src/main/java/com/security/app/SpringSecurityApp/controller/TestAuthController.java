@@ -37,13 +37,38 @@ public class TestAuthController {
     @Autowired
     private UserDetailServiceImpl userDetailServ;
 
-
+    // Endppoints para verificar la seguridad para todo tipo de usuarios
     @GetMapping("/get")
     @PreAuthorize("hasAuthority('READ')")
     public String helloGet(){
         return "Hello world - GET";
     }
+    @PostMapping("/post")
+    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR', 'SOPORTE')")
+    public String helloPost(){
+        return "Hello world - POST";
+    }
 
+    @PutMapping("/put")
+    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR', 'SOPORTE')")
+    public String helloPut(){
+        return "hello world - PUT";
+    }
+    
+
+    // Endpoints de gestion de usuarios, solo accesibles para ADMIN y SOPORTE
+
+    @GetMapping ("/get/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
+    public ResponseEntity<UserEntity> getUserById(@PathVariable Long id){
+        try {
+            UserEntity user = userDetailServ.findById(id);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
     @GetMapping("/get/listar_usuarios_habilitados")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
     public ResponseEntity<List<UserEntity>> listarUsuarios(){
@@ -64,11 +89,6 @@ public class TestAuthController {
         return ResponseEntity.ok(consulta);
     }
 
-    @PostMapping("/post")
-    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR', 'SOPORTE')")
-    public String helloPost(){
-        return "Hello world - POST";
-    }
 
     @PostMapping("/post/crear_usuario")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
@@ -96,11 +116,7 @@ public class TestAuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioGuardado);
     }
 
-    @PutMapping("/put")
-    @PreAuthorize("hasAnyRole('ADMIN','PROFESOR', 'SOPORTE')")
-    public String helloPut(){
-        return "hello world - PUT";
-    }
+    
 
     @DeleteMapping("/delete/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")

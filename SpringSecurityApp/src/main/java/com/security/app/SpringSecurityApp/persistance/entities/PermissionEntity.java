@@ -1,5 +1,6 @@
 package com.security.app.SpringSecurityApp.persistance.entities;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -21,10 +22,12 @@ import lombok.Setter;
 @Table(name = "permissions")
 public class PermissionEntity {
 
+    @Schema(description = "Identificador único del permiso.", example = "1")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long Id;
 
+    @Schema(description = "Nombre del permiso, debe ser único.", example = "READ")
     @Column(unique = true, nullable = false, updatable = false)
     private String name;
 

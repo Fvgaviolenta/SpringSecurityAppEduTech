@@ -25,10 +25,20 @@ import com.security.app.SpringSecurityApp.persistance.repository.RoleRepository;
 import com.security.app.SpringSecurityApp.persistance.repository.UserRepository;
 import com.security.app.SpringSecurityApp.service.UserDetailServiceImpl;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("api/v1/auth")
+@Tag(name = "AuthController", description = "Controlador para gestionar la autenticación, autorización y gestion de usuarios")
+// Este controlador está configurado para denegar el acceso a todos los usuarios por defecto
 @PreAuthorize("denyAll()")
-public class TestAuthController {
+public class AuthController {
 
     @Autowired
     private RoleRepository roleRepository;
@@ -38,17 +48,34 @@ public class TestAuthController {
     private UserDetailServiceImpl userDetailServ;
 
     // Endppoints para verificar la seguridad para todo tipo de usuarios
+
+    @Operation(summary = "Endpoint de prueba para verificar la seguridad")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Respuesta exitosa"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
+    })
     @GetMapping("/get")
     @PreAuthorize("hasAuthority('READ')")
     public String helloGet(){
         return "Hello world - GET";
     }
+
+    @Operation(summary = "Endpoint de prueba para verificar la seguridad con POST")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Respuesta exitosa"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
+    })
     @PostMapping("/post")
     @PreAuthorize("hasAnyRole('ADMIN','PROFESOR', 'SOPORTE')")
     public String helloPost(){
         return "Hello world - POST";
     }
 
+    @Operation(summary = "Endpoint de prueba para verificar la seguridad con PUT")
+    @ApiResponses({ 
+            @ApiResponse(responseCode = "200", description = "Respuesta exitosa"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
+    })
     @PutMapping("/put")
     @PreAuthorize("hasAnyRole('ADMIN','PROFESOR', 'SOPORTE')")
     public String helloPut(){
@@ -58,9 +85,15 @@ public class TestAuthController {
 
     // Endpoints de gestion de usuarios, solo accesibles para ADMIN y SOPORTE
 
+    @Operation(summary = "Endpoint para obtener un usuario por ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Usuario encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado"),
+            @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+    })
     @GetMapping ("/get/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
-    public ResponseEntity<UserEntity> getUserById(@PathVariable Long id){
+    public ResponseEntity<UserEntity> getUserById(@Parameter(description = "ID del usuario", example = "1") @PathVariable Long id){
         try {
             UserEntity user = userDetailServ.findById(id);
             return ResponseEntity.ok(user);
@@ -69,6 +102,12 @@ public class TestAuthController {
         }
     }
     
+    @Operation(summary = "Endpoint para listar todos los usuarios habilitados")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de usuarios habilitados"),
+            @ApiResponse(responseCode = "204", description = "No hay usuarios habilitados"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
+    })
     @GetMapping("/get/listar_usuarios_habilitados")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
     public ResponseEntity<List<UserEntity>> listarUsuarios(){
@@ -79,6 +118,12 @@ public class TestAuthController {
         return ResponseEntity.ok(consulta);
     }
 
+    @Operation(summary = "Endpoint para listar todos los usuarios deshabilitados")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de usuarios deshabilitados"),
+            @ApiResponse(responseCode = "204", description = "No hay usuarios deshabilitados"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
+    })
     @GetMapping("/get/listar_usuarios_deshabilitados")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
     public ResponseEntity<List<UserEntity>> listarUsuariosDeshabilitados(){
@@ -90,9 +135,18 @@ public class TestAuthController {
     }
 
 
+    @Operation(summary = "Endpoint para crear un nuevo usuario")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Usuario creado exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Solicitud incorrecta"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
+    })
     @PostMapping("/post/crear_usuario")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
-    public ResponseEntity<UserEntity> crearUsuario(@RequestBody UserEntityDTO newUserDTO){
+    
+    public ResponseEntity<UserEntity> crearUsuario(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Datos del nuevo usuario", required = true, 
+            content = @Content(schema = @Schema(implementation = UserEntityDTO.class)))
+        @RequestBody UserEntityDTO newUserDTO){
 
         Set<RoleEntity> rolesAsignados = new HashSet<>();
         for (String nombreRol : newUserDTO.getRoles()) {
@@ -118,23 +172,43 @@ public class TestAuthController {
 
     
 
+    @Operation(summary = "Endpoint para eliminar un usuario por ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Usuario eliminado correctamente"),
+            @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
+    })
     @DeleteMapping("/delete/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
-    public String DeleteUser(@PathVariable Long id){
+    public String DeleteUser(@Parameter(description = "ID del usuario a eliminar", example = "1") @PathVariable Long id){
         userDetailServ.deshabilitarUsuarioById(id);
         return "Usuario con id: " + id + " deshabilitado correctamente.";
     }
 
+    @Operation(summary = "Endpoint para habilitar un usuario por ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Usuario habilitado correctamente"),
+            @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
+    })
     @PutMapping("/put/habilitar/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
-    public String habilitarUsuario(@PathVariable Long id){
+    public String habilitarUsuario(@Parameter(description = "ID del usuario a deshabilitar", example = "1") @PathVariable Long id){
         userDetailServ.habilitarUsuarioById(id);
         return "Usuario con id: " + id + " habilitado correctamente.";
     }
 
+    @Operation(summary = "Endpoint para actualizar un usuario por ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Usuario actualizado correctamente",
+                content = @Content(schema = @Schema(implementation = UserEntityDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
+            @ApiResponse(responseCode = "403", description = "Acceso denegado")
+    })
     @PutMapping("/put/actualizar/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
-    public ResponseEntity actualizarUsuario(@PathVariable Long id, @RequestBody UserEntityDTO userDTO){
+    public ResponseEntity actualizarUsuario(@Parameter(description = "ID del usuario a actualizar", example = "1") @PathVariable Long id, 
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Datos actualizados del usuario", required = true, content = @Content(schema = @Schema(implementation = UserEntityDTO.class))) @RequestBody UserEntityDTO userDTO){
         try {
             Set<RoleEntity> rolesAsignados = new HashSet<>();
             for (String nombreRol : userDTO.getRoles()) {

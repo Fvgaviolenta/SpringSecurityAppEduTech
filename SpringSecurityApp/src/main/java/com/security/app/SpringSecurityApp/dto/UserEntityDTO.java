@@ -1,12 +1,19 @@
 package com.security.app.SpringSecurityApp.dto;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.Set;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
+@Builder
 @Schema(description = "DTO que representa un usuario del sistema.")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserEntityDTO {
+    private Long id;
 
     @Schema(description = "nombre de usuario único para el acceso al sistema.", example = "alfonso.admin")
     private String username;

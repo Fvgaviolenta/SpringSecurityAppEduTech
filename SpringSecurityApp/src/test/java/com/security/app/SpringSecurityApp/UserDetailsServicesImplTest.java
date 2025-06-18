@@ -96,6 +96,10 @@ public class UserDetailsServicesImplTest {
 
         Mockito.when(userRepository.findAllByEnabledTrue())
                 .thenReturn(List.of(user1, user2));
+
+        List<UserEntity> resultado = userDetailService.findAllByEnabledTrue();
+        assertEquals(2, resultado.size());
+        assertTrue(resultado.stream().allMatch(UserEntity::isEnabled));
     }
 
     @Test
@@ -123,6 +127,9 @@ public class UserDetailsServicesImplTest {
 
         Mockito.when(userRepository.findAllByEnabledFalse())
                 .thenReturn(List.of(user1, user2));
+        List<UserEntity> resultado = userDetailService.findAllByEnabledFalse();
+        assertEquals(2, resultado.size());
+        assertTrue(resultado.stream().allMatch(user -> !user.isEnabled()));
     }
 
     @Test
@@ -150,6 +157,9 @@ public class UserDetailsServicesImplTest {
 
         Mockito.when(userRepository.findAll())
                 .thenReturn(List.of(user1, user2));
+        
+        List<UserEntity> resultado = userDetailService.findAll();
+        assertEquals(2, resultado.size());
     }
 
     @Test
@@ -172,6 +182,9 @@ public class UserDetailsServicesImplTest {
 
         Mockito.when(userRepository.findById(userId))
                 .thenReturn(java.util.Optional.of(user));
+        
+        UserEntity result = userDetailService.findById(userId);
+        assertEquals(userId, result.getId());
     }
 
     @Test
@@ -198,6 +211,9 @@ public class UserDetailsServicesImplTest {
         userDetailService.deshabilitarUsuarioById(userId);
 
         Mockito.verify(userRepository).save(Mockito.any(UserEntity.class));
+
+        UserEntity updatedUser = userDetailService.findById(userId);
+        assertEquals(false, updatedUser.isEnabled());
     }
 
     @Test
@@ -224,6 +240,9 @@ public class UserDetailsServicesImplTest {
         userDetailService.habilitarUsuarioById(userId);
 
         Mockito.verify(userRepository).save(Mockito.any(UserEntity.class));
+
+        UserEntity updatedUser = userDetailService.findById(userId);
+        assertEquals(true, updatedUser.isEnabled());
     }
 
     @Test
@@ -247,6 +266,8 @@ public class UserDetailsServicesImplTest {
         UserEntity savedUser = userDetailService.save(user);
 
         Mockito.verify(userRepository).save(user);
+
+        assertEquals("newUser", savedUser.getUsername());
     }
 
 

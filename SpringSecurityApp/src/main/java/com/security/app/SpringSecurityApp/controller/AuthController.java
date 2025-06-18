@@ -1,10 +1,16 @@
 package com.security.app.SpringSecurityApp.controller;
 
+import java.lang.annotation.Repeatable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +22,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.security.app.SpringSecurityApp.dto.UserEntityDTO;
 import com.security.app.SpringSecurityApp.persistance.entities.RoleEntity;
@@ -56,8 +63,8 @@ public class AuthController {
     })
     @GetMapping("/get")
     @PreAuthorize("hasAuthority('READ')")
-    public String helloGet(){
-        return "Hello world - GET";
+    public ResponseEntity<?> helloGet(){
+        return ResponseEntity.ok("Hello world - GET");
     }
 
     @Operation(summary = "Endpoint de prueba para verificar la seguridad con POST")
@@ -67,8 +74,8 @@ public class AuthController {
     })
     @PostMapping("/post")
     @PreAuthorize("hasAnyRole('ADMIN','PROFESOR', 'SOPORTE')")
-    public String helloPost(){
-        return "Hello world - POST";
+    public ResponseEntity<?> helloPost(){
+        return ResponseEntity.ok("Hello world - POST");
     }
 
     @Operation(summary = "Endpoint de prueba para verificar la seguridad con PUT")
@@ -78,45 +85,117 @@ public class AuthController {
     })
     @PutMapping("/put")
     @PreAuthorize("hasAnyRole('ADMIN','PROFESOR', 'SOPORTE')")
-    public String helloPut(){
-        return "hello world - PUT";
+    public ResponseEntity<?> helloPut(){
+        return ResponseEntity.ok("Hello world - PUT");
     }
     
 
     // Endpoints de gestion de usuarios, solo accesibles para ADMIN y SOPORTE
 
-    @Operation(summary = "Endpoint para obtener un usuario por ID")
+    @Operation(summary = "Endpoint para listar usuario por ID con HATEOAS")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuario encontrado"),
             @ApiResponse(responseCode = "403", description = "Acceso denegado"),
             @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
-    @GetMapping ("/get/{id}")
+    @GetMapping("/get/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
-    public ResponseEntity<UserEntity> getUserById(@Parameter(description = "ID del usuario", example = "1") @PathVariable Long id){
-        try {
-            UserEntity user = userDetailServ.findById(id);
-            return ResponseEntity.ok(user);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+    public EntityModel<UserEntity> obtenerUsuario(@Parameter(description = "ID del usuario", example = "1") @PathVariable Long id) {
+        UserEntity user = userDetailServ.findById(id);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
         }
+        EntityModel<UserEntity> userModel = EntityModel.of(user);
+        boolean hasAdmin = user.getRoles().stream().anyMatch(role -> role.getRoleEnum().name().equals("ADMIN"));
+        boolean hasSoporte = user.getRoles().stream().anyMatch(role -> role.getRoleEnum().name().equals("SOPORTE"));
+        if (hasAdmin || hasSoporte) {
+            userModel.add(linkTo(methodOn(AuthController.class).obtenerUsuario(id)).withSelfRel());
+            userModel.add(linkTo(methodOn(AuthController.class).listarUsuariosHabilitadosV2()).withRel("listar_usuarios_habilitados"));
+            userModel.add(linkTo(methodOn(AuthController.class).listarUsuariosDeshabilitados()).withRel("listar_usuarios_deshabilitados"));
+            userModel.add(linkTo(methodOn(AuthController.class).crearUsuario(UserEntityDTO.builder().build())).withRel("crear_usuario"));
+            userModel.add(linkTo(methodOn(AuthController.class).DeleteUser(id)).withRel("eliminar_usuario"));
+            userModel.add(linkTo(methodOn(AuthController.class).habilitarUsuario(id)).withRel("habilitar_usuario"));
+        } else{
+            userModel.add(linkTo(methodOn(AuthController.class).helloGet()).withRel("hello_get"));
+            userModel.add(linkTo(methodOn(AuthController.class).helloPost()).withRel("hello_post"));
+            userModel.add(linkTo(methodOn(AuthController.class).helloPut()).withRel("hello_put"));
+        }
+        return userModel;
     }
+
+    // Este metodo esta comentado debido a que es la primera version del endpoint para obtener un usuario por ID sin usar HATEOAS
+    // @Operation(summary = "Endpoint para obtener un usuario por ID")
+    // @ApiResponses({
+    //         @ApiResponse(responseCode = "200", description = "Usuario encontrado"),
+    //         @ApiResponse(responseCode = "403", description = "Acceso denegado"),
+    //         @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+    // })
+    // @GetMapping ("/get/{id}")
+    // @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
+    // public ResponseEntity<UserEntity> getUserById(@Parameter(description = "ID del usuario", example = "1") @PathVariable Long id){
+    //     try {
+    //         UserEntity user = userDetailServ.findById(id);
+    //         return ResponseEntity.ok(user);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.notFound().build();
+    //     }
+    // }
     
-    @Operation(summary = "Endpoint para listar todos los usuarios habilitados")
+
+    @Operation(summary = "Endpoint para listar usuarios habilitados con HATEOAS")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de usuarios habilitados"),
             @ApiResponse(responseCode = "204", description = "No hay usuarios habilitados"),
             @ApiResponse(responseCode = "403", description = "Acceso denegado")
     })
-    @GetMapping("/get/listar_usuarios_habilitados")
+
+    @GetMapping("/get/listar_usuarios_habilitados/v2")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
-    public ResponseEntity<List<UserEntity>> listarUsuarios(){
+    public CollectionModel<EntityModel<UserEntity>> listarUsuariosHabilitadosV2(){
         List<UserEntity> consulta = userDetailServ.findAllByEnabledTrue();
         if (consulta.isEmpty()) {
-            return ResponseEntity.noContent().build();
+            return CollectionModel.empty();
         }
-        return ResponseEntity.ok(consulta);
+        List<EntityModel<UserEntity>> userModels = consulta.stream()
+                .map(user -> {
+                    EntityModel<UserEntity> userModel = EntityModel.of(user);
+                    boolean hasAdmin = user.getRoles().stream().anyMatch(role -> role.getRoleEnum().name().equals("ADMIN"));
+                    boolean hasSoporte = user.getRoles().stream().anyMatch(role -> role.getRoleEnum().name().equals("SOPORTE"));
+                    if (hasAdmin || hasSoporte) {
+                        userModel.add(linkTo(methodOn(AuthController.class).obtenerUsuario(user.getId())).withSelfRel());
+                        userModel.add(linkTo(methodOn(AuthController.class).listarUsuariosHabilitadosV2()).withRel("listar_usuarios_habilitados"));
+                        userModel.add(linkTo(methodOn(AuthController.class).listarUsuariosDeshabilitados()).withRel("listar_usuarios_deshabilitados"));
+                        userModel.add(linkTo(methodOn(AuthController.class).crearUsuario(UserEntityDTO.builder().build())).withRel("crear_usuario"));
+                        userModel.add(linkTo(methodOn(AuthController.class).DeleteUser(user.getId())).withRel("eliminar_usuario"));
+                        userModel.add(linkTo(methodOn(AuthController.class).habilitarUsuario(user.getId())).withRel("habilitar_usuario"));
+                    } else {
+                        userModel.add(linkTo(methodOn(AuthController.class).helloGet()).withRel("hello_get"));
+                        userModel.add(linkTo(methodOn(AuthController.class).helloPost()).withRel("hello_post"));
+                        userModel.add(linkTo(methodOn(AuthController.class).helloPut()).withRel("hello_put"));
+                    }
+                    return userModel;
+                }).toList();
+        CollectionModel<EntityModel<UserEntity>> collectionModel = CollectionModel.of(userModels);
+        collectionModel.add(linkTo(methodOn(AuthController.class).listarUsuariosHabilitadosV2()).withSelfRel());
+        return collectionModel;
     }
+
+    // Este metodo esta comentado debido a que es la primera version del endpoint para listar usuarios habilitados sin usar HATEOAS
+    // @Operation(summary = "Endpoint para listar todos los usuarios habilitados")
+    // @ApiResponses({
+    //         @ApiResponse(responseCode = "200", description = "Lista de usuarios habilitados"),
+    //         @ApiResponse(responseCode = "204", description = "No hay usuarios habilitados"),
+    //         @ApiResponse(responseCode = "403", description = "Acceso denegado")
+    // })
+    // @GetMapping("/get/listar_usuarios_habilitados")
+    // @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
+    // public ResponseEntity<List<UserEntity>> listarUsuarios(){
+    //     List<UserEntity> consulta = userDetailServ.findAllByEnabledTrue();
+    //     if (consulta.isEmpty()) {
+    //         return ResponseEntity.noContent().build();
+    //     }
+    //     return ResponseEntity.ok(consulta);
+    // }
 
     @Operation(summary = "Endpoint para listar todos los usuarios deshabilitados")
     @ApiResponses({
@@ -180,9 +259,9 @@ public class AuthController {
     })
     @DeleteMapping("/delete/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
-    public String DeleteUser(@Parameter(description = "ID del usuario a eliminar", example = "1") @PathVariable Long id){
+    public ResponseEntity<?> DeleteUser(@Parameter(description = "ID del usuario a deshabilitar", example = "1") @PathVariable Long id){
         userDetailServ.deshabilitarUsuarioById(id);
-        return "Usuario con id: " + id + " deshabilitado correctamente.";
+        return ResponseEntity.ok().body("Usuario con id: " + id + " deshabilitado correctamente.");
     }
 
     @Operation(summary = "Endpoint para habilitar un usuario por ID")
@@ -193,9 +272,9 @@ public class AuthController {
     })
     @PutMapping("/put/habilitar/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
-    public String habilitarUsuario(@Parameter(description = "ID del usuario a deshabilitar", example = "1") @PathVariable Long id){
+    public ResponseEntity<?> habilitarUsuario(@Parameter(description = "ID del usuario a deshabilitar", example = "1") @PathVariable Long id){
         userDetailServ.habilitarUsuarioById(id);
-        return "Usuario con id: " + id + " habilitado correctamente.";
+        return ResponseEntity.ok().body("Usuario con id: " + id + " habilitado correctamente.");
     }
 
     @Operation(summary = "Endpoint para actualizar un usuario por ID")
@@ -207,7 +286,7 @@ public class AuthController {
     })
     @PutMapping("/put/actualizar/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SOPORTE')")
-    public ResponseEntity actualizarUsuario(@Parameter(description = "ID del usuario a actualizar", example = "1") @PathVariable Long id, 
+    public ResponseEntity<?> actualizarUsuario(@Parameter(description = "ID del usuario a actualizar", example = "1") @PathVariable Long id, 
     @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Datos actualizados del usuario", required = true, content = @Content(schema = @Schema(implementation = UserEntityDTO.class))) @RequestBody UserEntityDTO userDTO){
         try {
             Set<RoleEntity> rolesAsignados = new HashSet<>();

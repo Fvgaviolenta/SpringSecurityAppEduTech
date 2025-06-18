@@ -18,6 +18,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long>{
     List<UserEntity> findAllByEnabledTrue();
     List<UserEntity> findAllByEnabledFalse();
     List<UserEntity> findAll();
+    boolean existsByUsername(String username);
 
 
 }

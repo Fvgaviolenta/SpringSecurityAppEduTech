@@ -57,8 +57,6 @@ public class UserDetailServiceImpl implements UserDetailsService{
     }
 
 
-
-
     public UserEntity save(UserEntity newUser){
         return userRepository.save(newUser);
     }

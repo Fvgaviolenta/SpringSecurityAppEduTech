@@ -12,6 +12,8 @@ import com.security.app.SpringSecurityApp.persistance.entities.PermissionEntity;
 import com.security.app.SpringSecurityApp.persistance.entities.RoleEntity;
 import com.security.app.SpringSecurityApp.persistance.entities.RoleEnum;
 import com.security.app.SpringSecurityApp.persistance.entities.UserEntity;
+import com.security.app.SpringSecurityApp.persistance.repository.PermissionRepository;
+import com.security.app.SpringSecurityApp.persistance.repository.RoleRepository;
 import com.security.app.SpringSecurityApp.persistance.repository.UserRepository;
 
 @SpringBootApplication
@@ -19,92 +21,101 @@ public class SpringSecurityAppApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(SpringSecurityAppApplication.class, args);
-	}
+	}	
 
 	@Bean
-	CommandLineRunner init(UserRepository userRepository){
-		return args -> {
-			//CREANDO PERMISSIONS
-			PermissionEntity createPermission = PermissionEntity.builder()
-					.name("CREATE")
-					.build();
-			
-			PermissionEntity readPermission = PermissionEntity.builder()
-					.name("READ")
-					.build();
-			
-			PermissionEntity updatePermission = PermissionEntity.builder()
-					.name("UPDATE")
-					.build();
+CommandLineRunner init(UserRepository userRepository,
+                       RoleRepository roleRepository,
+                       PermissionRepository permissionRepository) {
+    return args -> {
+        // Crear permisos solo si no existen
+        PermissionEntity create = permissionRepository.findByName("CREATE")
+                .orElseGet(() -> permissionRepository.save(PermissionEntity.builder().name("CREATE").build()));
 
-			PermissionEntity deletePermission = PermissionEntity.builder()
-					.name("DELETE")
-					.build();
+        PermissionEntity read = permissionRepository.findByName("READ")
+                .orElseGet(() -> permissionRepository.save(PermissionEntity.builder().name("READ").build()));
 
-			//CREANDO ROLES
-			RoleEntity roleAdmin = RoleEntity.builder()
-					.roleEnum(RoleEnum.ADMIN)
-					.permissionList(Set.of(createPermission, readPermission, updatePermission, deletePermission))
-					.build();
+        PermissionEntity update = permissionRepository.findByName("UPDATE")
+                .orElseGet(() -> permissionRepository.save(PermissionEntity.builder().name("UPDATE").build()));
 
-			RoleEntity roleProfesor = RoleEntity.builder()
-					.roleEnum(RoleEnum.PROFESOR)
-					.permissionList(Set.of(createPermission, readPermission, updatePermission))
-					.build();
+        PermissionEntity delete = permissionRepository.findByName("DELETE")
+                .orElseGet(() -> permissionRepository.save(PermissionEntity.builder().name("DELETE").build()));
 
-			RoleEntity roleEstudiante = RoleEntity.builder()
-					.roleEnum(RoleEnum.ESTUDIANTE)
-					.permissionList(Set.of(readPermission))
-					.build();
+        // Crear roles si no existen
+        RoleEntity adminRole = roleRepository.findByRoleEnum(RoleEnum.ADMIN)
+                .orElseGet(() -> roleRepository.save(RoleEntity.builder()
+                        .roleEnum(RoleEnum.ADMIN)
+                        .permissionList(Set.of(create, read, update, delete))
+                        .build()));
 
-			RoleEntity roleSoporte = RoleEntity.builder()
-					.roleEnum(RoleEnum.SOPORTE)
-					.permissionList(Set.of(readPermission, createPermission, updatePermission, deletePermission))
-					.build();
+        RoleEntity profesorRole = roleRepository.findByRoleEnum(RoleEnum.PROFESOR)
+                .orElseGet(() -> roleRepository.save(RoleEntity.builder()
+                        .roleEnum(RoleEnum.PROFESOR)
+                        .permissionList(Set.of(create, read, update))
+                        .build()));
 
-			//CREANDO USUARIOS
-			UserEntity userAdmin = UserEntity.builder()
-					.username("alfonso.admin")
-					.password("1234")
-					.enabled(true)
-					.accountNoExpired(true)
-					.accountNoLocked(true)
-					.credentialNoExpired(true)
-					.roles(Set.of(roleAdmin))
-					.build();
+        RoleEntity estudianteRole = roleRepository.findByRoleEnum(RoleEnum.ESTUDIANTE)
+                .orElseGet(() -> roleRepository.save(RoleEntity.builder()
+                        .roleEnum(RoleEnum.ESTUDIANTE)
+                        .permissionList(Set.of(read))
+                        .build()));
 
-			UserEntity userSoporte = UserEntity.builder()
-					.username("aron.soporte")
-					.password("1234")
-					.enabled(true)
-					.accountNoExpired(true)
-					.accountNoLocked(true)
-					.credentialNoExpired(true)
-					.roles(Set.of(roleSoporte))
-					.build();
+        RoleEntity soporteRole = roleRepository.findByRoleEnum(RoleEnum.SOPORTE)
+                .orElseGet(() -> roleRepository.save(RoleEntity.builder()
+                        .roleEnum(RoleEnum.SOPORTE)
+                        .permissionList(Set.of(create, read, update, delete))
+                        .build()));
 
-			UserEntity userProfesor = UserEntity.builder()
-					.username("hernan.profesor")
-					.password("1234")
-					.enabled(true)
-					.accountNoExpired(true)
-					.accountNoLocked(true)
-					.credentialNoExpired(true)
-					.roles(Set.of(roleProfesor))
-					.build();
-			
-			UserEntity userEstudiante = UserEntity.builder()
-					.username("fabian.estudiante")
-					.password("1234")
-					.enabled(true)
-					.accountNoExpired(true)
-					.accountNoLocked(true)
-					.credentialNoExpired(true)
-					.roles(Set.of(roleEstudiante))
-					.build();	
+        // Crear usuarios si no existen
+        if (!userRepository.existsByUsername("alfonso.admin")) {
+            userRepository.save(UserEntity.builder()
+                    .username("alfonso.admin")
+                    .password("1234")
+                    .enabled(true)
+                    .accountNoExpired(true)
+                    .accountNoLocked(true)
+                    .credentialNoExpired(true)
+                    .roles(Set.of(adminRole))
+                    .build());
+        }
 
-			userRepository.saveAll(List.of(userAdmin, userSoporte, userProfesor, userEstudiante));
-		};
-	}
+        if (!userRepository.existsByUsername("aron.soporte")) {
+            userRepository.save(UserEntity.builder()
+                    .username("aron.soporte")
+                    .password("1234")
+                    .enabled(true)
+                    .accountNoExpired(true)
+                    .accountNoLocked(true)
+                    .credentialNoExpired(true)
+                    .roles(Set.of(soporteRole))
+                    .build());
+        }
+
+        if (!userRepository.existsByUsername("hernan.profesor")) {
+            userRepository.save(UserEntity.builder()
+                    .username("hernan.profesor")
+                    .password("1234")
+                    .enabled(true)
+                    .accountNoExpired(true)
+                    .accountNoLocked(true)
+                    .credentialNoExpired(true)
+                    .roles(Set.of(profesorRole))
+                    .build());
+        }
+
+        if (!userRepository.existsByUsername("fabian.estudiante")) {
+            userRepository.save(UserEntity.builder()
+                    .username("fabian.estudiante")
+                    .password("1234")
+                    .enabled(true)
+                    .accountNoExpired(true)
+                    .accountNoLocked(true)
+                    .credentialNoExpired(true)
+                    .roles(Set.of(estudianteRole))
+                    .build());
+        }
+    };
+}
+
 
 }

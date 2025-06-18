@@ -44,7 +44,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping("api/v1/auth")
 @Tag(name = "AuthController", description = "Controlador para gestionar la autenticación, autorización y gestion de usuarios")
 // Este controlador está configurado para denegar el acceso a todos los usuarios por defecto
-@PreAuthorize("denyAll()")
+//@PreAuthorize("denyAll()")
 public class AuthController {
 
     @Autowired
